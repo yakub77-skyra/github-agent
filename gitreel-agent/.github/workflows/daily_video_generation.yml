@@ -1,0 +1,99 @@
+name: GitReel AI Agent - Daily Video Generation
+
+on:
+  schedule:
+    # Run daily at 8:00 AM UTC
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+    # Allow manual trigger for testing
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  generate-video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ffmpeg \
+            chromium-browser \
+            libnss3 \
+            libatk-bridge2.0-0 \
+            libdrm2 \
+            libxkbcommon0 \
+            libgbm1 \
+            libxrandr2 \
+            libasound2 \
+            libpangocairo-1.0-0 \
+            libgtk-3-0
+      
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Install Playwright browsers
+        run: |
+          playwright install chromium
+          playwright install-deps chromium
+      
+      - name: Configure Git for large files
+        run: |
+          git config --global http.postBuffer 524288000
+      
+      - name: Run GitReel AI Agent
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          ZERNIO_API_KEY: ${{ secrets.ZERNIO_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd src
+          python orchestrator.py
+      
+      - name: Upload generated videos as artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitreel-videos-${{ github.run_number }}
+          path: output/videos/*.mp4
+          retention-days: 7
+          if-no-files-found: ignore
+      
+      - name: Upload logs as artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitreel-logs-${{ github.run_number }}
+          path: |
+            *.log
+            output/**/*.log
+          retention-days: 7
+      
+      - name: Cleanup old artifacts
+        if: always()
+        run: |
+          echo "Cleaning up temporary files..."
+          rm -rf output/temp/*
+          rm -rf output/audio/*
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::GitReel AI Agent workflow failed. Check logs for details."
+          echo "Failure notification would be sent here (configure webhooks if needed)"

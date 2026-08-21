@@ -1,0 +1,26 @@
+# GitReel AI Agent - Requirements
+
+# Core Dependencies
+requests>=2.31.0
+groq>=0.4.0
+
+# TTS (Text-to-Speech)
+edge-tts>=6.1.0
+mutagen>=1.47.0
+
+# Browser Automation
+playwright>=1.40.0
+
+# Video Processing
+# Note: ffmpeg must be installed separately via apt-get
+
+# YouTube API
+google-api-python-client>=2.111.0
+google-auth-httplib2>=0.2.0
+google-auth-oauthlib>=1.2.0
+
+# Logging and Utilities
+python-dotenv>=1.0.0
+
+# Async Support
+asyncio>=3.4.3
